@@ -1,6 +1,6 @@
-app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
+app.service('cpu', ['opcodes', 'memory', function (opcodes, memory) {
     var cpu = {
-        step: function() {
+        step: function () {
             var self = this;
 
             if (self.fault === true) {
@@ -8,7 +8,7 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
             }
 
             try {
-                var checkGPR = function(reg) {
+                var checkGPR = function (reg) {
                     if (reg < 0 || reg >= self.gpr.length) {
                         throw "Invalid register: " + reg;
                     } else {
@@ -16,7 +16,7 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     }
                 };
 
-                var checkGPR_SP = function(reg) {
+                var checkGPR_SP = function (reg) {
                     if (reg < 0 || reg >= 1 + self.gpr.length) {
                         throw "Invalid register: " + reg;
                     } else {
@@ -24,11 +24,10 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     }
                 };
 
-                var setGPR_SP = function(reg,value)
-                {
-                    if(reg >= 0 && reg < self.gpr.length) {
+                var setGPR_SP = function (reg, value) {
+                    if (reg >= 0 && reg < self.gpr.length) {
                         self.gpr[reg] = value;
-                    } else if(reg == self.gpr.length) {
+                    } else if (reg == self.gpr.length) {
                         self.sp = value;
 
                         // Not likely to happen, since we always get here after checkOpertion().
@@ -42,38 +41,45 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     }
                 };
 
-                var getGPR_SP = function(reg)
-                {
-                    if(reg >= 0 && reg < self.gpr.length) {
+                var getGPR_SP = function (reg) {
+                    if (reg >= 0 && reg < self.gpr.length) {
                         return self.gpr[reg];
-                    } else if(reg == self.gpr.length) {
+                    } else if (reg == self.gpr.length) {
                         return self.sp;
                     } else {
                         throw "Invalid register: " + reg;
                     }
                 };
 
-                var indirectRegisterAddress = function(value) {
+                var indirectRegisterAddress = function (value) {
                     var reg = value % 8;
-                    
+
                     var base;
                     if (reg < self.gpr.length) {
                         base = self.gpr[reg];
                     } else {
                         base = self.sp;
                     }
-                    
+
                     var offset = Math.floor(value / 8);
-                    if ( offset > 15 ) {
+                    if (offset > 15) {
                         offset = offset - 32;
                     }
-                    
-                    return base+offset;
+
+                    return base + offset;
                 };
 
-                var checkOperation = function(value) {
+                var checkOperation = function (value, isShiftRight) {
                     self.zero = false;
                     self.carry = false;
+                    
+                    if (typeof isShiftRight === "undefined") {
+                        isShiftRight = false;
+                    }
+
+                    if (isShiftRight && (value & 1) === 1) {
+                        self.carry = true;
+                    }
 
                     if (value >= 256) {
                         self.carry = true;
@@ -88,7 +94,7 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     return value;
                 };
 
-                var jump = function(newIP) {
+                var jump = function (newIP) {
                     if (newIP < 0 || newIP >= memory.data.length) {
                         throw "IP outside memory";
                     } else {
@@ -96,14 +102,14 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     }
                 };
 
-                var push = function(value) {
+                var push = function (value) {
                     memory.store(self.sp--, value);
                     if (self.sp < self.minSP) {
                         throw "Stack overflow";
                     }
                 };
 
-                var pop = function() {
+                var pop = function () {
                     var value = memory.load(++self.sp);
                     if (self.sp > self.maxSP) {
                         throw "Stack underflow";
@@ -112,7 +118,7 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     return value;
                 };
 
-                var division = function(divisor) {
+                var division = function (divisor) {
                     if (divisor === 0) {
                         throw "Division by 0";
                     }
@@ -123,28 +129,28 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                 if (self.ip < 0 || self.ip >= memory.data.length) {
                     throw "Instruction pointer is outside of memory";
                 }
-                
+
                 var regTo, regFrom, memFrom, memTo, number;
                 var instr = memory.load(self.ip);
-                switch(instr) {
+                switch (instr) {
                     case opcodes.NONE:
                         return false; // Abort step
                     case opcodes.MOV_REG_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = checkGPR_SP(memory.load(++self.ip));
-                        setGPR_SP(regTo,getGPR_SP(regFrom));
+                        setGPR_SP(regTo, getGPR_SP(regFrom));
                         self.ip++;
                         break;
                     case opcodes.MOV_ADDRESS_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         memFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,memory.load(memFrom));
+                        setGPR_SP(regTo, memory.load(memFrom));
                         self.ip++;
                         break;
                     case opcodes.MOV_REGADDRESS_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,memory.load(indirectRegisterAddress(regFrom)));
+                        setGPR_SP(regTo, memory.load(indirectRegisterAddress(regFrom)));
                         self.ip++;
                         break;
                     case opcodes.MOV_REG_TO_ADDRESS:
@@ -162,7 +168,7 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     case opcodes.MOV_NUMBER_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         number = memory.load(++self.ip);
-                        setGPR_SP(regTo,number);
+                        setGPR_SP(regTo, number);
                         self.ip++;
                         break;
                     case opcodes.MOV_NUMBER_TO_ADDRESS:
@@ -180,59 +186,59 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     case opcodes.ADD_REG_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = checkGPR_SP(memory.load(++self.ip));
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) + getGPR_SP(regFrom)));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) + getGPR_SP(regFrom)));
                         self.ip++;
                         break;
                     case opcodes.ADD_REGADDRESS_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) + memory.load(indirectRegisterAddress(regFrom))));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) + memory.load(indirectRegisterAddress(regFrom))));
                         self.ip++;
                         break;
                     case opcodes.ADD_ADDRESS_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         memFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) + memory.load(memFrom)));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) + memory.load(memFrom)));
                         self.ip++;
                         break;
                     case opcodes.ADD_NUMBER_TO_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         number = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) + number));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) + number));
                         self.ip++;
                         break;
                     case opcodes.SUB_REG_FROM_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = checkGPR_SP(memory.load(++self.ip));
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) - self.gpr[regFrom]));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) - self.gpr[regFrom]));
                         self.ip++;
                         break;
                     case opcodes.SUB_REGADDRESS_FROM_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         regFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) - memory.load(indirectRegisterAddress(regFrom))));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) - memory.load(indirectRegisterAddress(regFrom))));
                         self.ip++;
                         break;
                     case opcodes.SUB_ADDRESS_FROM_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         memFrom = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) - memory.load(memFrom)));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) - memory.load(memFrom)));
                         self.ip++;
                         break;
                     case opcodes.SUB_NUMBER_FROM_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
                         number = memory.load(++self.ip);
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) - number));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) - number));
                         self.ip++;
                         break;
                     case opcodes.INC_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) + 1));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) + 1));
                         self.ip++;
                         break;
                     case opcodes.DEC_REG:
                         regTo = checkGPR_SP(memory.load(++self.ip));
-                        setGPR_SP(regTo,checkOperation(getGPR_SP(regTo) - 1));
+                        setGPR_SP(regTo, checkOperation(getGPR_SP(regTo) - 1));
                         self.ip++;
                         break;
                     case opcodes.CMP_REG_WITH_REG:
@@ -390,12 +396,12 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                         break;
                     case opcodes.CALL_REGADDRESS:
                         regTo = checkGPR(memory.load(++self.ip));
-                        push(self.ip+1);
+                        push(self.ip + 1);
                         jump(self.gpr[regTo]);
                         break;
                     case opcodes.CALL_ADDRESS:
                         number = memory.load(++self.ip);
-                        push(self.ip+1);
+                        push(self.ip + 1);
                         jump(number);
                         break;
                     case opcodes.RET:
@@ -545,25 +551,25 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                     case opcodes.SHR_REG_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         regFrom = checkGPR(memory.load(++self.ip));
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> self.gpr[regFrom]);
+                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> self.gpr[regFrom], true);
                         self.ip++;
                         break;
                     case opcodes.SHR_REGADDRESS_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         regFrom = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(indirectRegisterAddress(regFrom)));
+                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(indirectRegisterAddress(regFrom)), true);
                         self.ip++;
                         break;
                     case opcodes.SHR_ADDRESS_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         memFrom = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(memFrom));
+                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(memFrom), true);
                         self.ip++;
                         break;
                     case opcodes.SHR_NUMBER_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         number = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> number);
+                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> number, true);
                         self.ip++;
                         break;
                     default:
@@ -571,12 +577,12 @@ app.service('cpu', ['opcodes', 'memory', function(opcodes, memory) {
                 }
 
                 return true;
-            } catch(e) {
+            } catch (e) {
                 self.fault = true;
                 throw e;
             }
         },
-        reset: function() {
+        reset: function () {
             var self = this;
             self.maxSP = 231;
             self.minSP = 0;
