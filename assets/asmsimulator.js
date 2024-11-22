@@ -708,29 +708,31 @@ var app = angular.module('ASMSimulator', []);
 
                 var checkOperation = function (value, isShiftRight) {
                     self.zero = false;
-                    self.carry = false;
+                    var carrySet = false;
                     
+                    // Standardwert für isShiftRight
                     if (typeof isShiftRight === "undefined") {
                         isShiftRight = false;
                     }
-
+                
                     if (isShiftRight && (value & 1) === 1) {
-                        self.carry = true;
+                        carrySet = true;
                     }
-
+                
                     if (value >= 256) {
-                        self.carry = true;
+                        carrySet = true;
                         value = value % 256;
                     } else if (value === 0) {
                         self.zero = true;
                     } else if (value < 0) {
-                        self.carry = true;
+                        carrySet = true;
                         value = 256 - (-value) % 256;
                     }
-
+                
+                    self.carry = carrySet;
                     return value;
                 };
-
+                
                 var jump = function (newIP) {
                     if (newIP < 0 || newIP >= memory.data.length) {
                         throw "IP outside memory";
