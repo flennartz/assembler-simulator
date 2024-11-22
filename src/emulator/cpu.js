@@ -71,31 +71,24 @@ app.service('cpu', ['opcodes', 'memory', function (opcodes, memory) {
 
                 var checkOperation = function (value, isShiftRight) {
                     self.zero = false;
-                    var carrySet = false;
-                    
-                    // Standardwert für isShiftRight
-                    if (typeof isShiftRight === "undefined") {
-                        isShiftRight = false;
+
+                    if (!isShiftRight) {
+                        self.carry = false;
                     }
-                
-                    if (isShiftRight && (value & 1) === 1) {
-                        carrySet = true;
-                    }
-                
+
                     if (value >= 256) {
-                        carrySet = true;
+                        self.carry = true;
                         value = value % 256;
                     } else if (value === 0) {
                         self.zero = true;
                     } else if (value < 0) {
-                        carrySet = true;
+                        self.carry = true;
                         value = 256 - (-value) % 256;
                     }
-                
-                    self.carry = carrySet;
+
                     return value;
                 };
-                
+
                 var jump = function (newIP) {
                     if (newIP < 0 || newIP >= memory.data.length) {
                         throw "IP outside memory";
@@ -133,6 +126,8 @@ app.service('cpu', ['opcodes', 'memory', function (opcodes, memory) {
                 }
 
                 var regTo, regFrom, memFrom, memTo, number;
+                var valueToShift, shiftAmount;
+
                 var instr = memory.load(self.ip);
                 switch (instr) {
                     case opcodes.NONE:
@@ -550,28 +545,60 @@ app.service('cpu', ['opcodes', 'memory', function (opcodes, memory) {
                         self.gpr[regTo] = checkOperation(self.gpr[regTo] << number);
                         self.ip++;
                         break;
+
                     case opcodes.SHR_REG_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         regFrom = checkGPR(memory.load(++self.ip));
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> self.gpr[regFrom], true);
+                        valueToShift = self.gpr[regTo];
+                        shiftAmount = self.gpr[regFrom];
+
+                        // Setze das Carry-Flag basierend auf dem niederwertigsten Bit vor der Shift-Operation
+                        self.carry = (valueToShift & (1 << (shiftAmount - 1))) !== 0;
+
+                        // Führe die Shift-Right-Operation durch
+                        self.gpr[regTo] = checkOperation(valueToShift >>> shiftAmount, true);
                         self.ip++;
                         break;
+
                     case opcodes.SHR_REGADDRESS_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         regFrom = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(indirectRegisterAddress(regFrom)), true);
+                        valueToShift = self.gpr[regTo];
+                        shiftAmount = memory.load(indirectRegisterAddress(regFrom));
+
+                        // Setze das Carry-Flag basierend auf dem niederwertigsten Bit vor der Shift-Operation
+                        self.carry = (valueToShift & (1 << (shiftAmount - 1))) !== 0;
+
+                        // Führe die Shift-Right-Operation durch
+                        self.gpr[regTo] = checkOperation(valueToShift >>> shiftAmount, true);
                         self.ip++;
                         break;
+
                     case opcodes.SHR_ADDRESS_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         memFrom = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> memory.load(memFrom), true);
+                        valueToShift = self.gpr[regTo];
+                        shiftAmount = memory.load(memFrom);
+
+                        // Setze das Carry-Flag basierend auf dem niederwertigsten Bit vor der Shift-Operation
+                        self.carry = (valueToShift & (1 << (shiftAmount - 1))) !== 0;
+
+                        // Führe die Shift-Right-Operation durch
+                        self.gpr[regTo] = checkOperation(valueToShift >>> shiftAmount, true);
                         self.ip++;
                         break;
+
                     case opcodes.SHR_NUMBER_WITH_REG:
                         regTo = checkGPR(memory.load(++self.ip));
                         number = memory.load(++self.ip);
-                        self.gpr[regTo] = checkOperation(self.gpr[regTo] >>> number, true);
+                        valueToShift = self.gpr[regTo];
+                        shiftAmount = number;
+
+                        // Setze das Carry-Flag basierend auf dem niederwertigsten Bit vor der Shift-Operation
+                        self.carry = (valueToShift & (1 << (shiftAmount - 1))) !== 0;
+
+                        // Führe die Shift-Right-Operation durch
+                        self.gpr[regTo] = checkOperation(valueToShift >>> shiftAmount, true);
                         self.ip++;
                         break;
                     default:
