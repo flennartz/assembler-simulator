@@ -211,12 +211,12 @@ body {
 }
 
 #asm-sim .asm-col-code {
-    flex: 1 1 360px;
+    flex: 1 1 380px;
     min-width: 0;
 }
 
 #asm-sim .asm-col-run {
-    flex: 1 1 520px;
+    flex: 1 1 480px;
     min-width: 0;
 }
 
@@ -233,6 +233,8 @@ body {
     font-size: 0.9em;
     line-height: 1.4;
     tab-size: 8;
+    white-space: pre;
+    overflow-x: auto;
     resize: vertical;
     color: #222;
     background: #fff;
@@ -458,6 +460,13 @@ body {
 
 #asm-sim .asm-options {
     margin-top: 8px;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #555;
+}
+
+#asm-sim .asm-options .asm-small {
+    font-size: 1em;
 }
 
 /* ---------- Tabellen (Labels, Befehlssatz) ---------- */
@@ -531,5 +540,76 @@ body {
 
     #asm-sim table.asm-regs .marker {
         min-width: 1.7em;
+    }
+}
+
+/* ---------- 2. Ausführung: alle Blöcke auf gemeinsame Breite ---------- */
+
+#asm-sim .asm-col-run {
+    max-width: 680px;
+}
+
+#asm-sim .asm-push {
+    margin-left: auto;
+}
+
+#asm-sim #asm-example {
+    flex: 1 1 0;
+    min-width: 8em;
+    max-width: 16em;
+}
+
+#asm-sim .asm-run-bar button {
+    flex: 1 1 auto;
+}
+
+#asm-sim .asm-status label {
+    margin-right: -6px;
+}
+
+#asm-sim .asm-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+#asm-sim .asm-output {
+    display: block;
+}
+
+#asm-sim .asm-out-grid {
+    display: grid;
+    grid-template-columns: repeat(24, minmax(0, 1fr));
+    border-left: 1px solid #999;
+    border-top: 1px solid #999;
+}
+
+#asm-sim .asm-out-grid .asm-out-cell {
+    width: auto;
+    margin: 0;
+    border: 0;
+    border-right: 1px solid #999;
+    border-bottom: 1px solid #999;
+}
+
+#asm-sim table.asm-regs,
+#asm-sim table.asm-mem {
+    width: 100%;
+    table-layout: fixed;
+}
+
+#asm-sim table.asm-mem th,
+#asm-sim table.asm-mem td {
+    width: auto;
+}
+
+#asm-sim .asm-mem-wrap table.asm-mem {
+    min-width: 30em;
+}
+
+@media (max-width: 600px) {
+    #asm-sim .asm-out-grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
     }
 }

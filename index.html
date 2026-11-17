@@ -46,9 +46,11 @@
                       class="asm-code"
                       rows="22"
                       spellcheck="false"
+                      wrap="off"
                       autocomplete="off"
                       tab-support
                       select-line
+                      match-height=".asm-mem"
                       ng-model="code"></textarea>
 
             <div ng-cloak>
@@ -65,14 +67,12 @@
         <section class="asm-col-run" ng-cloak>
             <h3>2. Ausführung</h3>
 
-            <div class="asm-bar">
+            <div class="asm-bar asm-run-bar">
                 <button type="button" ng-click="restart()" title="Programm neu laden und Prozessor zurücksetzen">⏮ Zurücksetzen</button>
                 <button type="button" ng-click="executeStep()" ng-disabled="isRunning || halted" title="einen Befehl ausführen">Schritt ▶</button>
                 <button type="button" class="asm-primary" ng-click="run()" ng-hide="isRunning" ng-disabled="halted">▶ Abspielen</button>
                 <button type="button" ng-click="stop()" ng-show="isRunning">⏸ Anhalten</button>
                 <button type="button" ng-click="runToEnd()" ng-disabled="isRunning || halted" title="sofort bis HLT rechnen">⏭ Bis zum Ende</button>
-                <label for="asm-speed" class="asm-small">Takt</label>
-                <select id="asm-speed" ng-model="speed" ng-options="s as (s + ' Hz') for s in speeds"></select>
             </div>
 
             <div class="asm-status">
@@ -83,11 +83,15 @@
                     <span ng-show="!cpu.fault && !halted && !isRunning">bereit</span>
                 </span>
                 <span class="asm-small">Schritte: <strong>{{ steps }}</strong></span>
+                <label for="asm-speed" class="asm-small asm-push">Takt</label>
+                <select id="asm-speed" ng-model="speed" ng-options="s as (s + ' Hz') for s in speeds"></select>
             </div>
 
             <h4>Ausgabe <span class="asm-small">(Adressen 232–255)</span></h4>
             <div class="asm-output">
-                <div class="asm-out-cell" ng-repeat="m in memory.data | startFrom: outputStartIndex track by $index">{{ getChar(m) }}</div>
+                <div class="asm-out-grid">
+                    <div class="asm-out-cell" ng-repeat="m in memory.data | startFrom: outputStartIndex track by $index">{{ getChar(m) }}</div>
+                </div>
             </div>
 
             <h4>Register und Flags</h4>
@@ -147,15 +151,18 @@
             </div>
 
             <div class="asm-bar asm-options">
-                <span class="asm-small">Anzeige:</span>
-                <label><input type="checkbox" ng-model="displayHex"> hexadezimal</label>
-                <label><input type="checkbox" ng-model="displayInstr"> Programm markieren</label>
-                <span class="asm-sep"></span>
-                <span class="asm-small" title="Markiert die Speicherzelle, auf die das Register zeigt">Register als Zeiger:</span>
-                <label><input type="checkbox" ng-model="displayA"> <span class="asm-reg-dot marker-a"></span>A</label>
-                <label><input type="checkbox" ng-model="displayB"> <span class="asm-reg-dot marker-b"></span>B</label>
-                <label><input type="checkbox" ng-model="displayC"> <span class="asm-reg-dot marker-c"></span>C</label>
-                <label><input type="checkbox" ng-model="displayD"> <span class="asm-reg-dot marker-d"></span>D</label>
+                <span class="asm-group">
+                    <span class="asm-small">Anzeige:</span>
+                    <label><input type="checkbox" ng-model="displayHex"> hexadezimal</label>
+                    <label><input type="checkbox" ng-model="displayInstr"> Programm markieren</label>
+                </span>
+                <span class="asm-group">
+                    <span class="asm-small" title="Markiert die Speicherzelle, auf die das Register zeigt">Register als Zeiger:</span>
+                    <label><input type="checkbox" ng-model="displayA"> <span class="asm-reg-dot marker-a"></span>A</label>
+                    <label><input type="checkbox" ng-model="displayB"> <span class="asm-reg-dot marker-b"></span>B</label>
+                    <label><input type="checkbox" ng-model="displayC"> <span class="asm-reg-dot marker-c"></span>C</label>
+                    <label><input type="checkbox" ng-model="displayD"> <span class="asm-reg-dot marker-d"></span>D</label>
+                </span>
             </div>
         </section>
     </div>

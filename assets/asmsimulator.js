@@ -1414,7 +1414,7 @@ var app = angular.module('ASMSimulator', []);
 
     $scope.examples = [
         {
-            name: "Hallo Welt (Unterprogramm)",
+            name: "Hallo Welt",
             code: "; Beispiel: Hallo Welt\n; Schreibt \"Hallo Welt!\" in die Ausgabe\n\n" +
                 "\tJMP start\n" +
                 "hello:\tDB \"Hallo Welt!\"\t; Zeichenkette\n" +
@@ -1440,7 +1440,7 @@ var app = angular.module('ASMSimulator', []);
                 "\tRET"
         },
         {
-            name: "Countdown (Schleife)",
+            name: "Countdown",
             code: "; Beispiel: Countdown\n; Schreibt die Ziffern 9 bis 0 in die Ausgabe\n\n" +
                 "\tMOV A, '9'\t; Startwert als Zeichen\n" +
                 "\tMOV D, 232\t; D zeigt auf die Ausgabe\n" +
@@ -1682,6 +1682,50 @@ var app = angular.module('ASMSimulator', []);
         return input ? '1' : '0';
     };
 });
+;// Stretches the element so that its bottom edge lines up with the bottom of the element
+// given by the selector (used to let the code editor end at the same height as the memory table).
+// Only applies while both are side by side; in the single-column layout the default height is kept.
+// Once the user resizes the element by hand, the automatic height is no longer applied.
+app.directive('matchHeight', ['$timeout', '$window', function ($timeout, $window) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attrs) {
+            var el = element[0];
+            var autoHeight = null;
+
+            var update = function () {
+                if (autoHeight !== null && el.offsetHeight !== autoHeight) {
+                    return; // resized by the user
+                }
+
+                var target = $window.document.querySelector(attrs.matchHeight);
+                el.style.height = '';
+                if (!target) {
+                    autoHeight = null;
+                    return;
+                }
+
+                var elRect = el.getBoundingClientRect();
+                var targetRect = target.getBoundingClientRect();
+                var sideBySide = targetRect.left >= elRect.right;
+                var height = Math.round(targetRect.bottom - elRect.top);
+
+                if (sideBySide && height > el.offsetHeight) {
+                    el.style.height = height + 'px';
+                    autoHeight = el.offsetHeight;
+                } else {
+                    autoHeight = null;
+                }
+            };
+
+            $timeout(update);
+            angular.element($window).on('resize', update);
+            scope.$on('$destroy', function () {
+                angular.element($window).off('resize', update);
+            });
+        }
+    };
+}]);
 ;app.filter('number', function() {
     return function(input, isHex) {
         if (isHex) {

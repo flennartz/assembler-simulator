@@ -28,7 +28,7 @@ app.controller('Ctrl', ['$document', '$scope', '$timeout', 'cpu', 'memory', 'ass
 
     $scope.examples = [
         {
-            name: "Hallo Welt (Unterprogramm)",
+            name: "Hallo Welt",
             code: "; Beispiel: Hallo Welt\n; Schreibt \"Hallo Welt!\" in die Ausgabe\n\n" +
                 "\tJMP start\n" +
                 "hello:\tDB \"Hallo Welt!\"\t; Zeichenkette\n" +
@@ -54,7 +54,7 @@ app.controller('Ctrl', ['$document', '$scope', '$timeout', 'cpu', 'memory', 'ass
                 "\tRET"
         },
         {
-            name: "Countdown (Schleife)",
+            name: "Countdown",
             code: "; Beispiel: Countdown\n; Schreibt die Ziffern 9 bis 0 in die Ausgabe\n\n" +
                 "\tMOV A, '9'\t; Startwert als Zeichen\n" +
                 "\tMOV D, 232\t; D zeigt auf die Ausgabe\n" +
