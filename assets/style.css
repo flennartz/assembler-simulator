@@ -1,67 +1,535 @@
-.source-code {
-    font-family: source-code-pro, Courier New;
+/* GdI – Assembler-Simulator
+   Grunddesign angelehnt an den GdI-Turingmaschinen-Simulator (hell, schlicht, für die Einbettung per iframe in Moodle). */
+
+[ng-cloak] {
+    display: none !important;
 }
 
-.output, .output-bg {
-    background-color: #DFDFDF;
+html, body {
+    margin: 0;
+    background: #fff;
 }
 
-.output {
-    width: 1em;
-    margin-right: 1px;
-    margin-bottom: 1px;
+body {
+    padding: 16px;
+}
+
+#asm-sim {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.45;
+    max-width: 1920px;
+    border: 1px solid #bbb;
+    border-radius: 14px;
+    padding: 16px 18px;
+    background: #fff;
+    color: #222;
+    box-sizing: border-box;
+}
+
+#asm-sim *, #asm-sim *::before, #asm-sim *::after {
+    box-sizing: border-box;
+}
+
+#asm-sim h2 {
+    margin: 0 0 0.4em;
+}
+
+#asm-sim h3 {
+    margin: 1.2em 0 0.5em;
+    padding-bottom: 3px;
+    border-bottom: 2px solid #ddd;
+}
+
+#asm-sim h4 {
+    margin: 1em 0 0.35em;
+    font-size: 1em;
+}
+
+#asm-sim p {
+    margin: 0.4em 0;
+}
+
+#asm-sim a {
+    color: #3367d6;
+    cursor: pointer;
+}
+
+/* ---------- Hinweiskästen ---------- */
+
+#asm-sim .asm-note,
+#asm-sim .asm-good,
+#asm-sim .asm-warning,
+#asm-sim .asm-error {
+    padding: 7px 10px;
+    margin: 8px 0;
+    border-left: 5px solid;
+}
+
+#asm-sim .asm-note {
+    background: #f5f5f5;
+    border-left-color: #777;
+    padding: 8px 12px;
+}
+
+#asm-sim .asm-good {
+    background: #eef8ee;
+    border-left-color: #5d9f5d;
+}
+
+#asm-sim .asm-warning {
+    background: #fff8e8;
+    border-left-color: #c9952f;
+}
+
+#asm-sim .asm-error {
+    background: #fdeeee;
+    border-left-color: #c0392b;
+}
+
+#asm-sim .asm-note ul {
+    margin: 2px 0;
+    padding-left: 22px;
+}
+
+#asm-sim code,
+#asm-sim pre {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+#asm-sim code {
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+
+#asm-sim pre {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    padding: 6px 10px;
+    margin: 6px 0;
+    overflow-x: auto;
+}
+
+#asm-sim .asm-small {
+    font-size: 0.9em;
+    color: #555;
+}
+
+/* ---------- Bedienelemente ---------- */
+
+#asm-sim button {
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid #999;
+    cursor: pointer;
+    background: #f3f3f3;
+    margin: 0;
+    font: inherit;
+    font-size: 0.93em;
+    color: #222;
+}
+
+#asm-sim button:hover {
+    background: #e8e8e8;
+}
+
+#asm-sim button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+#asm-sim button.asm-primary {
+    background: #dbe7fd;
+    border-color: #3367d6;
+}
+
+#asm-sim button.asm-primary:hover {
+    background: #c8dafc;
+}
+
+#asm-sim button.asm-primary:disabled {
+    background: #f3f3f3;
+    border-color: #999;
+}
+
+#asm-sim select {
+    padding: 5px 8px;
+    border: 1px solid #aaa;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 0.93em;
+    background: #fff;
+}
+
+#asm-sim label {
+    white-space: nowrap;
+}
+
+#asm-sim input[type="checkbox"] {
+    margin: 0 2px 0 0;
+    vertical-align: -1px;
+}
+
+#asm-sim .asm-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0;
+}
+
+#asm-sim .asm-sep {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background: #ccc;
+    margin: 0 6px;
+}
+
+#asm-sim details {
+    margin: 10px 0;
+}
+
+#asm-sim summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+#asm-sim details[open] > summary {
+    margin-bottom: 6px;
+}
+
+/* ---------- Spalten ---------- */
+
+#asm-sim .asm-cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 28px;
+    align-items: flex-start;
+}
+
+#asm-sim .asm-col-code {
+    flex: 1 1 360px;
+    min-width: 0;
+}
+
+#asm-sim .asm-col-run {
+    flex: 1 1 520px;
+    min-width: 0;
+}
+
+/* ---------- Code-Editor ---------- */
+
+#asm-sim textarea.asm-code {
+    display: block;
+    width: 100%;
+    min-height: 16em;
+    padding: 8px 10px;
+    border: 1px solid #aaa;
+    border-radius: 7px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+    tab-size: 8;
+    resize: vertical;
+    color: #222;
+    background: #fff;
+}
+
+#asm-sim textarea.asm-code:focus {
+    outline: 2px solid #b9cdf6;
+    outline-offset: 0;
+    border-color: #3367d6;
+}
+
+#asm-sim textarea.asm-code::selection {
+    background: #ffe9c7;
+    color: #222;
+}
+
+/* ---------- Status ---------- */
+
+#asm-sim .asm-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0 4px;
+}
+
+#asm-sim .asm-chip {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid #bbb;
+    font-size: 0.88em;
+    background: #f3f3f3;
+}
+
+#asm-sim .asm-chip-run {
+    background: #dbe7fd;
+    border-color: #3367d6;
+}
+
+#asm-sim .asm-chip-halt {
+    background: #dff2df;
+    border-color: #2e7d32;
+}
+
+#asm-sim .asm-chip-fault {
+    background: #fdeeee;
+    border-color: #c0392b;
+}
+
+/* ---------- Ausgabe ---------- */
+
+#asm-sim .asm-output {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+#asm-sim .asm-out-cell {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 32px;
+    margin-left: -1px;
+    border: 1px solid #999;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 17px;
+}
+
+#asm-sim .asm-out-cell:first-child {
+    margin-left: 0;
+}
+
+/* ---------- Register ---------- */
+
+#asm-sim table {
+    border-collapse: collapse;
+}
+
+#asm-sim table.asm-regs th,
+#asm-sim table.asm-regs td {
+    border: 1px solid #ccc;
+    padding: 3px 6px;
     text-align: center;
+    min-width: 2.9em;
+}
+
+#asm-sim table.asm-regs th {
+    background: #f3f3f3;
+    font-size: 0.92em;
+}
+
+#asm-sim table.asm-regs td {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+#asm-sim table.asm-regs .asm-flag {
+    min-width: 2em;
+}
+
+#asm-sim table.asm-regs th.asm-flag {
+    cursor: help;
+}
+
+#asm-sim table.asm-regs td.asm-flag-on {
+    background: #ffe9c7;
+    font-weight: 700;
+}
+
+#asm-sim table.asm-regs td.asm-flag-err {
+    background: #fdeeee;
+    color: #c0392b;
+    font-weight: 700;
+}
+
+/* ---------- Speicher ---------- */
+
+#asm-sim .asm-mem-wrap {
+    overflow-x: auto;
+}
+
+#asm-sim table.asm-mem {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.82em;
+}
+
+#asm-sim table.asm-mem th,
+#asm-sim table.asm-mem td {
+    width: 2.35em;
+    height: 1.75em;
+    padding: 1px;
+    text-align: center;
+}
+
+#asm-sim table.asm-mem td {
+    border: 1px solid #e3e3e3;
+}
+
+#asm-sim table.asm-mem th {
+    color: #888;
+    font-weight: normal;
+}
+
+#asm-sim table.asm-mem a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#asm-sim table.asm-mem a:hover {
+    text-decoration: underline;
+}
+
+.output-bg {
+    background-color: #eeeeee;
 }
 
 .instr-bg {
-    background-color: #E6F3FF;
-}
-
-.instr-bg a {
-    color: inherit;
-    cursor: pointer;
+    background-color: #e6f0ff;
 }
 
 .stack-bg {
-    background-color: #F8DCB4;
-}
-
-.memory-block {
-    width: 1.8em;
-    display: inline-block;
-    text-align: center;
+    background-color: #fbe3c2;
 }
 
 .marker {
-    width: 1.8em;
-    color: #FFF;
-    border-radius: 2px;
+    display: inline-block;
+    min-width: 1.9em;
+    padding: 0 2px;
+    color: #fff;
+    border-radius: 4px;
+}
+
+#asm-sim .marker a {
+    color: #fff;
 }
 
 .marker-ip {
-    background-color: #428BCA;
+    background-color: #3367d6;
 }
 
 .marker-sp {
-    background-color: #EEA236;
+    background-color: #e07b00;
 }
 
 .marker-a {
-    background-color: #4D8C20;
+    background-color: #4d8c20;
 }
 
 .marker-b {
-	background-color: #22D19D;
+    background-color: #159c74;
 }
 
 .marker-c {
-	background-color: #A137ED;
+    background-color: #8e2fd6;
 }
 
 .marker-d {
-	background-color: #E81F1F;
+    background-color: #d32f2f;
 }
 
-.codelabel-line a {
-    cursor: pointer;
+#asm-sim .asm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 6px 0 2px;
+}
+
+#asm-sim .asm-swatch,
+#asm-sim .asm-reg-dot {
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    margin-right: 4px;
+    vertical-align: -1px;
+}
+
+#asm-sim .asm-options {
+    margin-top: 8px;
+}
+
+/* ---------- Tabellen (Labels, Befehlssatz) ---------- */
+
+#asm-sim .asm-tab-wrap {
+    overflow-x: auto;
+}
+
+#asm-sim table.asm-tab th,
+#asm-sim table.asm-tab td {
+    border: 1px solid #ccc;
+    padding: 3px 7px;
+    text-align: left;
+    vertical-align: top;
+}
+
+#asm-sim table.asm-tab th {
+    background: #f3f3f3;
+    font-size: 0.92em;
+}
+
+#asm-sim table.asm-labels td {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+#asm-sim table.asm-ref td:first-child,
+#asm-sim table.asm-ref td:nth-child(2),
+#asm-sim table.asm-ref td:last-child {
+    white-space: nowrap;
+}
+
+#asm-sim table.asm-ref tr.asm-ref-group td {
+    background: #fafafa;
+    font-weight: 600;
+    color: #555;
+}
+
+#asm-sim .asm-ref-cols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 28px;
+}
+
+#asm-sim .asm-footer {
+    margin-top: 14px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+}
+
+/* ---------- schmale Ansicht ---------- */
+
+@media (max-width: 600px) {
+    body {
+        padding: 8px;
+    }
+
+    #asm-sim {
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    #asm-sim table.asm-ref td:nth-child(2) {
+        white-space: normal;
+    }
+
+    #asm-sim table.asm-regs th,
+    #asm-sim table.asm-regs td {
+        min-width: 0;
+        padding: 3px 3px;
+    }
+
+    #asm-sim table.asm-regs .marker {
+        min-width: 1.7em;
+    }
 }

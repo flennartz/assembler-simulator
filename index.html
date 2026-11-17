@@ -1,171 +1,291 @@
 <!DOCTYPE html>
-<html ng-app="ASMSimulator">
+<html lang="de" ng-app="ASMSimulator">
 <head>
-    <title>Simple 8-bit Assembler Simulator in Javascript</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <title>GdI – Assembler-Simulator</title>
     <link rel="stylesheet" href="assets/style.css">
-    <script type="text/javascript" src="//use.typekit.net/tor0zlh.js"></script>
-    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
 </head>
 <body ng-controller="Ctrl">
-    <nav class="navbar navbar-inverse" role="navigation" style="background-color:#28255A;border:0px;border-radius:0px;">
-        <div class="container">
-            <div class="navbar-header">
-                <div class="navbar-left">
-                    <img src="data/Hochschule_Rhein-Waal-logo.png" alt="Logo" style="height:40px; margin-right:15px;">
-                </div>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-success navbar-btn" ng-click="run()" ng-hide="isRunning"><span class="glyphicon glyphicon-play"></span> Run</button>
-                    <button type="button" class="btn btn-default navbar-btn" ng-click="stop()" ng-show="isRunning"><span class="glyphicon glyphicon-stop"></span> Stop</button>
-                    <button type="button" class="btn btn-default navbar-btn" ng-click="executeStep()" ng-disabled="isRunning"><span class="glyphicon glyphicon-forward"></span> Step</button>
-                </div>
-                <button type="button" class="btn btn-default navbar-btn" ng-click="reset()">Reset</button>
-            </div>
-            <div class="navbar-header navbar-right">
-                <a class="navbar-brand" style="color:#FFFFFF">Simple 8-bit Assembler Simulator</a>
-            </div>
-        </div>
-    </nav>
-    <div class="container">
-        <div class="alert alert-danger" ng-hide="error === ''">{{ error }}</div>
-        <div class="row">
-            <div class="col-lg-7 col-md-6">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">Code <small>(<a href="./instruction-set.html" target="_blank" style="color: #337AB7">Instruction Set</a>)</small></h4>
-                    </div>
-                    <div class="panel-body">
-                        <form role="form">
-                            <textarea id="sourceCode"
-                                      class="form-control source-code"
-                                      style="margin-bottom:5px;"
-                                      rows="35"
-                                      tab-support
-                                      select-line
-                                      ng-model="code"></textarea>
-                            <button type="button" class="btn btn-default" ng-click="assemble()">Assemble</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="clearfix visible-xs visible-sm"></div>
-            <div class="col-lg-5 col-md-6">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">Output</h4>
-                    </div>
-                    <div class="panel-body source-code">
-                        <div style="float:left;" class="output"
-                             ng-repeat="m in memory.data | startFrom: outputStartIndex track by $index">
-                            <span>{{ getChar(m) }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">CPU & Memory</h4>
-                    </div>
-                    <div class="panel-body">
-                        <p class="text-muted">Registers / Flags</p>
-                        <table class="table table-condensed table-striped">
-                            <thead>
-                                <tr>
-                                    <th style="text-align:center">A</th>
-                                    <th style="text-align:center">B</th>
-                                    <th style="text-align:center">C</th>
-                                    <th style="text-align:center">D</th>
-                                    <th style="text-align:center">IP</th>
-                                    <th style="text-align:center">SP</th>
-                                    <th style="text-align:center">Z</th>
-                                    <th style="text-align:center">C</th>
-                                    <th style="text-align:center">F</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr style="text-align:center;" class="source-code">
-                                    <td><div style="margin:auto;" ng-class="displayA && 'marker marker-a'"><small>{{ cpu.gpr[0] | number:displayHex }}</small></div></td>
-                                    <td><div style="margin:auto;" ng-class="displayB && 'marker marker-b'"><small>{{ cpu.gpr[1] | number:displayHex }}</small></div></td>
-                                    <td><div style="margin:auto;" ng-class="displayC && 'marker marker-c'"><small>{{ cpu.gpr[2] | number:displayHex }}</small></div></td>
-                                    <td><div style="margin:auto;" ng-class="displayD && 'marker marker-d'"><small>{{ cpu.gpr[3] | number:displayHex }}</small></div></td>
-                                    <td><div style="margin:auto;" class="marker marker-ip"><small>{{ cpu.ip | number:displayHex }}</small></div></td>
-                                    <td><div style="margin:auto;" class="marker marker-sp"><small>{{ cpu.sp | number:displayHex }}</small></div></td>
-                                    <td><small>{{ cpu.zero | flag }}</small></td>
-                                    <td><small>{{ cpu.carry | flag }}</small></td>
-                                    <td><small>{{ cpu.fault | flag }}</small></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p class="text-muted">RAM</p>
-                        <div style="width:29em;" class="source-code">
-                            <div class="memory-block"
-                                 ng-repeat="m in memory.data track by $index"
-                                 ng-class="getMemoryCellCss($index)">
-                                 <div ng-class="getMemoryInnerCellCss($index)" ng-switch="isInstruction($index)">
-                                     <small ng-switch-default>{{ m | number:displayHex }}</small>
-                                     <a ng-switch-when="true" ng-click="jumpToLine($index)">
-                                         <small>{{ m | number:displayHex }}</small>
-                                     </a>
-                                 </div>
-                            </div>
-                        </div>
-                        <p style="margin-top:5px;">
-                            <small>
-                                <span>Clock speed:</span>
-                                <select ng-model="speed" ng-options="item.speed as item.desc for item in speeds"></select>
-                                <span style="margin-left:5px;">Instructions:</span>
-                                <a ng-click="displayInstr = true" ng-hide="displayInstr">Show</a>
-                                <a ng-click="displayInstr = false" ng-show="displayInstr">Hide</a>
-                                <span style="margin-left:5px;">View:</span>
-                                <a ng-click="displayHex = true" ng-hide="displayHex">Hex</a>
-                                <a ng-click="displayHex = false" ng-show="displayHex">Decimal</a>
-								<br>
-								Register addressing: 
-                                <span style="margin-left:5px;">A:</span>
-                                <a ng-click="displayA = true" ng-hide="displayA">Show</a>
-                                <a ng-click="displayA = false" ng-show="displayA">Hide</a>
-                                <span style="margin-left:5px;">B:</span>
-                                <a ng-click="displayB = true" ng-hide="displayB">Show</a>
-                                <a ng-click="displayB = false" ng-show="displayB">Hide</a>
-                                <span style="margin-left:5px;">C:</span>
-                                <a ng-click="displayC = true" ng-hide="displayC">Show</a>
-                                <a ng-click="displayC = false" ng-show="displayC">Hide</a>
-                                <span style="margin-left:5px;">D:</span>
-                                <a ng-click="displayD = true" ng-hide="displayD">Show</a>
-                                <a ng-click="displayD = false" ng-show="displayD">Hide</a>
-                            </small>
-                        </p>
-                    </div>
-                </div>
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">Labels</h4>
-                    </div>
-                    <div class="panel-body source-code">
-                        <table class="table table-condensed table-striped codelabels">
-                            <tr>
-                                <th>Name</th>
-                                <th>Address</th>
-                                <th>Value</th>
-                            </tr>
-                            <tr ng-repeat="(name, value) in labels" class="codelabel">
-                                <td class="codelabel-name">{{ name }}</td>
-                                <td class="codelabel-line"><a ng-click="jumpToLine(value)">{{ value | number:displayHex }}</a></td>
-                                <td class="codelabel-value">{{ memory.data[value] | number:displayHex }}
-                                    <span ng-if="memory.data[value] >= 32 && memory.data[value] <= 126">
-                                        ('{{ getChar(memory.data[value]) }}')
-                                    </span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <hr style="margin-top:10px;margin-bottom:10px;"/>
-        <p><small>by Marco Schweighauser (2015) & Fabian Lennartz (2024) | MIT License | <a href="https://www.mschweighauser.com/make-your-own-assembler-simulator-in-javascript-part1/" target="_blank">Blog</a></small></p>
+<div id="asm-sim">
+
+    <h2>GdI – Assembler-Simulator</h2>
+
+    <p>
+        Schreiben Sie ein Assemblerprogramm für einen einfachen 8-Bit-Prozessor, übersetzen Sie es in Maschinencode und
+        führen Sie es Schritt für Schritt oder automatisch aus. Register, Flags, Speicher und Ausgabe werden dabei
+        laufend angezeigt.
+    </p>
+
+    <div class="asm-note">
+        <strong>So arbeitet der Simulator</strong>
+        <ul>
+            <li>Der Prozessor hat vier Register <code>A</code>–<code>D</code>, einen Stackpointer <code>SP</code>,
+                einen Befehlszeiger <code>IP</code> und 256 Byte Speicher. Alle Werte sind 8 Bit groß (0–255).</li>
+            <li>Das Programm wird ab Adresse 0 in den Speicher geladen; jeder Befehl und jeder Operand belegt ein Byte.
+                Der Stack wächst von Adresse 231 (<code>E7</code>) nach unten.</li>
+            <li>Was in die Adressen 232–255 (<code>E8</code>–<code>FF</code>) geschrieben wird, erscheint als Zeichen in der Ausgabe.
+                <code>HLT</code> beendet das Programm. Alle Befehle stehen unten im <a href="#befehlssatz" ng-click="openHelp()">Befehlssatz</a>.</li>
+        </ul>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
-    <script src="assets/asmsimulator.js"></script>
+
+    <div class="asm-cols">
+        <!-- ===================== 1. Programm ===================== -->
+        <section class="asm-col-code">
+            <h3>1. Programm</h3>
+
+            <div class="asm-bar">
+                <label for="asm-example">Beispiel:</label>
+                <select id="asm-example" ng-model="example" ng-options="ex.name for ex in examples"></select>
+                <button type="button" ng-click="loadExample()">Laden</button>
+                <span class="asm-sep"></span>
+                <button type="button" class="asm-primary" ng-click="assemble()" title="Programm übersetzen und in den Speicher laden">Assemblieren</button>
+            </div>
+
+            <textarea id="sourceCode"
+                      class="asm-code"
+                      rows="22"
+                      spellcheck="false"
+                      autocomplete="off"
+                      tab-support
+                      select-line
+                      ng-model="code"></textarea>
+
+            <div ng-cloak>
+                <div class="asm-error" ng-show="error !== ''">{{ error }}</div>
+                <div class="asm-warning" ng-show="error === '' && codeChanged()">
+                    Der Code wurde geändert. Bitte neu assemblieren, damit die Änderungen ausgeführt werden.
+                </div>
+                <div class="asm-warning" ng-show="error === '' && warning !== ''">{{ warning }}</div>
+                <div class="asm-good" ng-show="error === '' && warning === '' && !codeChanged() && info !== ''">{{ info }}</div>
+            </div>
+        </section>
+
+        <!-- ===================== 2. Ausführung ===================== -->
+        <section class="asm-col-run" ng-cloak>
+            <h3>2. Ausführung</h3>
+
+            <div class="asm-bar">
+                <button type="button" ng-click="restart()" title="Programm neu laden und Prozessor zurücksetzen">⏮ Zurücksetzen</button>
+                <button type="button" ng-click="executeStep()" ng-disabled="isRunning || halted" title="einen Befehl ausführen">Schritt ▶</button>
+                <button type="button" class="asm-primary" ng-click="run()" ng-hide="isRunning" ng-disabled="halted">▶ Abspielen</button>
+                <button type="button" ng-click="stop()" ng-show="isRunning">⏸ Anhalten</button>
+                <button type="button" ng-click="runToEnd()" ng-disabled="isRunning || halted" title="sofort bis HLT rechnen">⏭ Bis zum Ende</button>
+                <label for="asm-speed" class="asm-small">Takt</label>
+                <select id="asm-speed" ng-model="speed" ng-options="s as (s + ' Hz') for s in speeds"></select>
+            </div>
+
+            <div class="asm-status">
+                <span class="asm-chip" ng-class="{'asm-chip-run': isRunning, 'asm-chip-halt': halted, 'asm-chip-fault': cpu.fault}">
+                    <span ng-show="cpu.fault">Fehler</span>
+                    <span ng-show="!cpu.fault && halted">beendet</span>
+                    <span ng-show="!cpu.fault && !halted && isRunning">läuft</span>
+                    <span ng-show="!cpu.fault && !halted && !isRunning">bereit</span>
+                </span>
+                <span class="asm-small">Schritte: <strong>{{ steps }}</strong></span>
+            </div>
+
+            <h4>Ausgabe <span class="asm-small">(Adressen 232–255)</span></h4>
+            <div class="asm-output">
+                <div class="asm-out-cell" ng-repeat="m in memory.data | startFrom: outputStartIndex track by $index">{{ getChar(m) }}</div>
+            </div>
+
+            <h4>Register und Flags</h4>
+            <table class="asm-regs">
+                <thead>
+                    <tr>
+                        <th>A</th><th>B</th><th>C</th><th>D</th><th>IP</th><th>SP</th>
+                        <th class="asm-flag" title="Zero-Flag: Ergebnis war 0">Z</th>
+                        <th class="asm-flag" title="Carry-Flag: Über- oder Unterlauf">C</th>
+                        <th class="asm-flag" title="Fault-Flag: Prozessorfehler">F</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span ng-class="displayA && 'marker marker-a'">{{ cpu.gpr[0] | number:displayHex }}</span></td>
+                        <td><span ng-class="displayB && 'marker marker-b'">{{ cpu.gpr[1] | number:displayHex }}</span></td>
+                        <td><span ng-class="displayC && 'marker marker-c'">{{ cpu.gpr[2] | number:displayHex }}</span></td>
+                        <td><span ng-class="displayD && 'marker marker-d'">{{ cpu.gpr[3] | number:displayHex }}</span></td>
+                        <td><span class="marker marker-ip">{{ cpu.ip | number:displayHex }}</span></td>
+                        <td><span class="marker marker-sp">{{ cpu.sp | number:displayHex }}</span></td>
+                        <td class="asm-flag" ng-class="{'asm-flag-on': cpu.zero}">{{ cpu.zero | flag }}</td>
+                        <td class="asm-flag" ng-class="{'asm-flag-on': cpu.carry}">{{ cpu.carry | flag }}</td>
+                        <td class="asm-flag" ng-class="{'asm-flag-err': cpu.fault}">{{ cpu.fault | flag }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Speicher <span class="asm-small">(Zeile + Spalte = Adresse{{ displayHex ? ', hexadezimal' : '' }})</span></h4>
+            <div class="asm-mem-wrap">
+                <table class="asm-mem">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th ng-repeat="c in cols">{{ displayHex ? (c | number:true).slice(1) : '+' + c }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="r in rows">
+                            <th>{{ r | number:displayHex }}</th>
+                            <td ng-repeat="c in cols" ng-class="getMemoryCellCss(r + c)">
+                                <span ng-class="getMemoryInnerCellCss(r + c)" ng-switch="isInstruction(r + c)">
+                                    <span ng-switch-default>{{ memory.data[r + c] | number:displayHex }}</span>
+                                    <a ng-switch-when="true" ng-click="jumpToLine(r + c)" title="zur Codezeile springen">{{ memory.data[r + c] | number:displayHex }}</a>
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="asm-legend asm-small">
+                <span><i class="asm-swatch instr-bg"></i>Programm</span>
+                <span><i class="asm-swatch stack-bg"></i>Stack</span>
+                <span><i class="asm-swatch output-bg"></i>Ausgabe</span>
+                <span><i class="asm-swatch marker-ip"></i>IP</span>
+                <span><i class="asm-swatch marker-sp"></i>SP</span>
+            </div>
+
+            <div class="asm-bar asm-options">
+                <span class="asm-small">Anzeige:</span>
+                <label><input type="checkbox" ng-model="displayHex"> hexadezimal</label>
+                <label><input type="checkbox" ng-model="displayInstr"> Programm markieren</label>
+                <span class="asm-sep"></span>
+                <span class="asm-small" title="Markiert die Speicherzelle, auf die das Register zeigt">Register als Zeiger:</span>
+                <label><input type="checkbox" ng-model="displayA"> <span class="asm-reg-dot marker-a"></span>A</label>
+                <label><input type="checkbox" ng-model="displayB"> <span class="asm-reg-dot marker-b"></span>B</label>
+                <label><input type="checkbox" ng-model="displayC"> <span class="asm-reg-dot marker-c"></span>C</label>
+                <label><input type="checkbox" ng-model="displayD"> <span class="asm-reg-dot marker-d"></span>D</label>
+            </div>
+        </section>
+    </div>
+
+    <!-- ===================== Labels ===================== -->
+    <details ng-cloak>
+        <summary>Labels ({{ objectKeys(labels) }})</summary>
+        <p class="asm-small" ng-hide="objectKeys(labels)">Das Programm enthält keine Labels.</p>
+        <table class="asm-tab asm-labels" ng-show="objectKeys(labels)">
+            <thead>
+                <tr><th>Name</th><th>Adresse</th><th>Inhalt</th></tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="(name, value) in labels">
+                    <td><code>{{ name }}</code></td>
+                    <td><a ng-click="jumpToLine(value)" title="zur Codezeile springen">{{ value | number:displayHex }}</a></td>
+                    <td>{{ memory.data[value] | number:displayHex }}
+                        <span ng-if="memory.data[value] >= 32 && memory.data[value] <= 126">('{{ getChar(memory.data[value]) }}')</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </details>
+
+    <!-- ===================== Befehlssatz ===================== -->
+    <details id="befehlssatz">
+        <summary>Befehlssatz und Syntax</summary>
+
+        <h4>Syntax</h4>
+        <p>
+            Jeder Befehl steht in einer eigenen Zeile. Ein Label ist optional, beginnt mit einem Buchstaben oder einem
+            Punkt und endet mit einem Doppelpunkt. Alles nach <code>;</code> ist Kommentar.
+        </p>
+        <pre>label:  BEFEHL ziel, quelle   ; Kommentar</pre>
+
+        <div class="asm-ref-cols">
+            <div>
+                <p><strong>Konstanten</strong></p>
+                <table class="asm-tab">
+                    <tr><td>dezimal</td><td><code>200</code>, <code>200d</code></td></tr>
+                    <tr><td>hexadezimal</td><td><code>0xA4</code></td></tr>
+                    <tr><td>oktal</td><td><code>0o47</code></td></tr>
+                    <tr><td>binär</td><td><code>101b</code></td></tr>
+                    <tr><td>Zeichen</td><td><code>'A'</code></td></tr>
+                    <tr><td>Zeichenkette (nur <code>DB</code>)</td><td><code>"Hallo"</code></td></tr>
+                </table>
+            </div>
+            <div>
+                <p><strong>Operanden</strong></p>
+                <table class="asm-tab">
+                    <tr><td>Register</td><td><code>A</code>, <code>B</code>, <code>C</code>, <code>D</code></td></tr>
+                    <tr><td>Stackpointer</td><td><code>SP</code> (nur bei MOV, ADD, SUB, CMP, INC, DEC)</td></tr>
+                    <tr><td>Adresse aus Register</td><td><code>[A]</code></td></tr>
+                    <tr><td>… mit Offset (−16 bis +15)</td><td><code>[D-3]</code>, <code>[SP+2]</code></td></tr>
+                    <tr><td>feste Adresse</td><td><code>[100]</code>, <code>[label]</code></td></tr>
+                    <tr><td>Konstante (0–255)</td><td><code>42</code>, <code>label</code></td></tr>
+                </table>
+            </div>
+        </div>
+        <p class="asm-small">
+            Ein Label ohne eckige Klammern steht für seine Adresse (z.&nbsp;B. <code>MOV C, hello</code>), mit eckigen Klammern
+            für den Inhalt an dieser Adresse. In der Tabelle steht <em>reg</em> für ein Register, <em>adr</em> für eine
+            Adresse in eckigen Klammern und <em>konst</em> für eine Konstante.
+        </p>
+
+        <h4>Befehle</h4>
+        <div class="asm-tab-wrap">
+            <table class="asm-tab asm-ref">
+                <thead>
+                    <tr><th>Befehl</th><th>Operanden</th><th>Wirkung</th><th>Flags</th></tr>
+                </thead>
+                <tbody>
+                    <tr class="asm-ref-group"><td colspan="4">Daten</td></tr>
+                    <tr><td><code>MOV</code></td><td>reg, reg/adr/konst<br>adr, reg/konst</td><td>kopiert den zweiten Operanden in den ersten. Einziger Befehl, der direkt in den Speicher schreibt.</td><td>–</td></tr>
+                    <tr><td><code>DB</code></td><td>konst / "Text"</td><td>legt Daten (Zahl, Zeichen oder Zeichenkette) an dieser Stelle im Speicher ab.</td><td>–</td></tr>
+
+                    <tr class="asm-ref-group"><td colspan="4">Arithmetik</td></tr>
+                    <tr><td><code>ADD</code>, <code>SUB</code></td><td>reg, reg/adr/konst</td><td>addiert bzw. subtrahiert den zweiten Operanden zum/vom Register.</td><td>Z, C</td></tr>
+                    <tr><td><code>INC</code>, <code>DEC</code></td><td>reg</td><td>erhöht bzw. verringert das Register um 1.</td><td>Z, C</td></tr>
+                    <tr><td><code>MUL</code></td><td>reg/adr/konst</td><td><code>A = A · Operand</code></td><td>Z, C</td></tr>
+                    <tr><td><code>DIV</code></td><td>reg/adr/konst</td><td><code>A = A / Operand</code> (ganzzahlig, ohne Rest)</td><td>Z, C</td></tr>
+
+                    <tr class="asm-ref-group"><td colspan="4">Logik und Verschiebung</td></tr>
+                    <tr><td><code>AND</code>, <code>OR</code>, <code>XOR</code></td><td>reg, reg/adr/konst</td><td>bitweise Verknüpfung, Ergebnis im Register.</td><td>Z, C</td></tr>
+                    <tr><td><code>NOT</code></td><td>reg</td><td>invertiert alle Bits des Registers.</td><td>Z, C</td></tr>
+                    <tr><td><code>SHL</code>/<code>SAL</code>, <code>SHR</code>/<code>SAR</code></td><td>reg, reg/adr/konst</td><td>verschiebt die Bits des Registers um die angegebene Anzahl nach links bzw. rechts. Da nur vorzeichenlose Zahlen vorkommen, verhalten sich SHR und SAR gleich.</td><td>Z, C</td></tr>
+
+                    <tr class="asm-ref-group"><td colspan="4">Vergleich und Sprünge</td></tr>
+                    <tr><td><code>CMP</code></td><td>reg, reg/adr/konst</td><td>vergleicht (rechnet Register − Operand), ohne das Ergebnis zu speichern. Steht vor einem bedingten Sprung.</td><td>Z, C</td></tr>
+                    <tr><td><code>JMP</code></td><td>adr/label</td><td>springt immer zur angegebenen Adresse.</td><td>–</td></tr>
+                    <tr><td><code>J<em>xx</em></code></td><td>adr/label</td><td>springt nur, wenn die Bedingung erfüllt ist (siehe nächste Tabelle).</td><td>–</td></tr>
+
+                    <tr class="asm-ref-group"><td colspan="4">Stack und Unterprogramme</td></tr>
+                    <tr><td><code>PUSH</code></td><td>reg/adr/konst</td><td>legt einen Wert auf den Stack; <code>SP</code> wird um 1 verringert.</td><td>–</td></tr>
+                    <tr><td><code>POP</code></td><td>reg</td><td>holt den obersten Wert vom Stack ins Register; <code>SP</code> wird um 1 erhöht.</td><td>–</td></tr>
+                    <tr><td><code>CALL</code></td><td>adr/label</td><td>legt die Rücksprungadresse auf den Stack und springt ins Unterprogramm.</td><td>–</td></tr>
+                    <tr><td><code>RET</code></td><td>–</td><td>springt zur Adresse zurück, die <code>CALL</code> auf den Stack gelegt hat. Der Stack muss dafür wieder im selben Zustand sein.</td><td>–</td></tr>
+
+                    <tr class="asm-ref-group"><td colspan="4">Sonstiges</td></tr>
+                    <tr><td><code>HLT</code></td><td>–</td><td>hält den Prozessor an. Zum Neustart „Zurücksetzen“ drücken.</td><td>–</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h4>Bedingte Sprünge</h4>
+        <p class="asm-small">Nach <code>CMP x, y</code> gelten die Vergleiche für vorzeichenlose Zahlen x und y. Befehle in einer Zeile sind gleichwertig.</p>
+        <div class="asm-tab-wrap">
+            <table class="asm-tab">
+                <thead>
+                    <tr><th>Befehl</th><th>Bedeutung nach CMP x, y</th><th>Bedingung</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>JZ</code>, <code>JE</code></td><td>x = y</td><td>Z = 1</td></tr>
+                    <tr><td><code>JNZ</code>, <code>JNE</code></td><td>x ≠ y</td><td>Z = 0</td></tr>
+                    <tr><td><code>JA</code>, <code>JNBE</code></td><td>x &gt; y</td><td>C = 0 und Z = 0</td></tr>
+                    <tr><td><code>JNC</code>, <code>JAE</code>, <code>JNB</code></td><td>x ≥ y</td><td>C = 0</td></tr>
+                    <tr><td><code>JC</code>, <code>JB</code>, <code>JNAE</code></td><td>x &lt; y</td><td>C = 1</td></tr>
+                    <tr><td><code>JNA</code>, <code>JBE</code></td><td>x ≤ y</td><td>C = 1 oder Z = 1</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <p class="asm-footer asm-small">
+        Marco Schweighauser (2015) &amp; Fabian Lennartz (2024) · MIT-Lizenz ·
+        <a href="https://github.com/flennartz/assembler-simulator" target="_blank" rel="noopener">Quellcode</a>
+    </p>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
+<script src="assets/asmsimulator.js"></script>
 </body>
 </html>

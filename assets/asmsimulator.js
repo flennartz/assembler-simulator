@@ -40,7 +40,7 @@ var app = angular.module('ASMSimulator', []);
                 } else if (regexNum.exec(input)) {
                     return parseInt(input, 10);
                 } else {
-                    throw "Invalid number format";
+                    throw "Ungültiges Zahlenformat";
                 }
             };
 
@@ -97,7 +97,7 @@ var app = angular.module('ASMSimulator', []);
                 var offset = m * parseInt(input.slice(offset_start + 1), 10);
 
                 if (offset < -16 || offset > 15)
-                    throw "offset must be a value between -16...+15";
+                    throw "Der Offset muss zwischen -16 und +15 liegen";
 
                 if (offset < 0) {
                     offset = 32 + offset; // two's complement representation in 5-bit
@@ -107,6 +107,8 @@ var app = angular.module('ASMSimulator', []);
             };
 
             // Allowed: Register, Label or Number; SP+/-Number is allowed for 'regaddress' type
+            var typeNames = {address: "Adresse", number: "Zahl"};
+
             var parseRegOrNumber = function (input, typeReg, typeNumber) {
                 var register = parseRegister(input);
 
@@ -129,10 +131,10 @@ var app = angular.module('ASMSimulator', []);
                         var value = parseNumber(input);
 
                         if (isNaN(value)) {
-                            throw "Not a " + typeNumber + ": " + value;
+                            throw "Keine gültige " + typeNames[typeNumber] + ": " + input;
                         }
                         else if (value < 0 || value > 255)
-                            throw typeNumber + " must have a value between 0-255";
+                            throw typeNames[typeNumber] + " muss zwischen 0 und 255 liegen";
 
                         return {type: typeNumber, value: value};
                     }
@@ -160,7 +162,7 @@ var app = angular.module('ASMSimulator', []);
                     case "'": // 'C'
                         var character = input.slice(1, input.length - 1);
                         if (character.length > 1)
-                            throw "Only one character is allowed. Use String instead";
+                            throw "Nur ein einzelnes Zeichen erlaubt. Für mehrere Zeichen \"...\" verwenden";
 
                         return {type: "number", value: character.charCodeAt(0)};
                     default: // REGISTER, NUMBER or LABEL
@@ -171,17 +173,17 @@ var app = angular.module('ASMSimulator', []);
             var addLabel = function (label) {
                 var upperLabel = label.toUpperCase();
                 if (upperLabel in normalizedLabels)
-                    throw "Duplicate label: " + label;
+                    throw "Label doppelt vergeben: " + label;
 
                 if (upperLabel === "A" || upperLabel === "B" || upperLabel === "C" || upperLabel === "D")
-                    throw "Label contains keyword: " + upperLabel;
+                    throw "Label ist ein reserviertes Wort: " + upperLabel;
 
                 labels[label] = code.length;
             };
 
             var checkNoExtraArg = function (instr, arg) {
                 if (arg !== undefined) {
-                    throw instr + ": too many arguments";
+                    throw instr + ": zu viele Operanden";
                 }
             };
 
@@ -214,7 +216,7 @@ var app = angular.module('ASMSimulator', []);
                                             code.push(p1.value[j]);
                                         }
                                     else
-                                        throw "DB does not support this operand";
+                                        throw "DB: Dieser Operand wird nicht unterstützt";
 
                                     break;
                                 case 'HLT':
@@ -244,7 +246,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "regaddress" && p2.type === "number")
                                         opCode = opcodes.MOV_NUMBER_TO_REGADDRESS;
                                     else
-                                        throw "MOV does not support this operands";
+                                        throw "MOV: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -261,7 +263,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.ADD_NUMBER_TO_REG;
                                     else
-                                        throw "ADD does not support this operands";
+                                        throw "ADD: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -278,7 +280,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SUB_NUMBER_FROM_REG;
                                     else
-                                        throw "SUB does not support this operands";
+                                        throw "SUB: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -289,7 +291,7 @@ var app = angular.module('ASMSimulator', []);
                                     if (p1.type === "register")
                                         opCode = opcodes.INC_REG;
                                     else
-                                        throw "INC does not support this operand";
+                                        throw "INC: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
 
@@ -301,7 +303,7 @@ var app = angular.module('ASMSimulator', []);
                                     if (p1.type === "register")
                                         opCode = opcodes.DEC_REG;
                                     else
-                                        throw "DEC does not support this operand";
+                                        throw "DEC: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
 
@@ -319,7 +321,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.CMP_NUMBER_WITH_REG;
                                     else
-                                        throw "CMP does not support this operands";
+                                        throw "CMP: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -332,7 +334,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JMP_ADDRESS;
                                     else
-                                        throw "JMP does not support this operands";
+                                        throw "JMP: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -347,7 +349,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JC_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -362,7 +364,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNC_ADDRESS;
                                     else
-                                        throw instr + "does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -376,7 +378,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JZ_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -390,7 +392,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNZ_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -404,7 +406,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JA_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -418,7 +420,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNA_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -435,7 +437,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.PUSH_NUMBER;
                                     else
-                                        throw "PUSH does not support this operand";
+                                        throw "PUSH: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -446,7 +448,7 @@ var app = angular.module('ASMSimulator', []);
                                     if (p1.type === "register")
                                         opCode = opcodes.POP_REG;
                                     else
-                                        throw "PUSH does not support this operand";
+                                        throw "POP: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -459,7 +461,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.CALL_ADDRESS;
                                     else
-                                        throw "CALL does not support this operand";
+                                        throw "CALL: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -484,7 +486,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.MUL_NUMBER;
                                     else
-                                        throw "MULL does not support this operand";
+                                        throw "MUL: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -501,7 +503,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "number")
                                         opCode = opcodes.DIV_NUMBER;
                                     else
-                                        throw "DIV does not support this operand";
+                                        throw "DIV: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -518,7 +520,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.AND_NUMBER_WITH_REG;
                                     else
-                                        throw "AND does not support this operands";
+                                        throw "AND: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -535,7 +537,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.OR_NUMBER_WITH_REG;
                                     else
-                                        throw "OR does not support this operands";
+                                        throw "OR: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -552,7 +554,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.XOR_NUMBER_WITH_REG;
                                     else
-                                        throw "XOR does not support this operands";
+                                        throw "XOR: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -563,7 +565,7 @@ var app = angular.module('ASMSimulator', []);
                                     if (p1.type === "register")
                                         opCode = opcodes.NOT_REG;
                                     else
-                                        throw "NOT does not support this operand";
+                                        throw "NOT: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -581,7 +583,7 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SHL_NUMBER_WITH_REG;
                                     else
-                                        throw instr + " does not support this operands";
+                                        throw instr + ": Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -599,19 +601,19 @@ var app = angular.module('ASMSimulator', []);
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SHR_NUMBER_WITH_REG;
                                     else
-                                        throw instr + " does not support this operands";
+                                        throw instr + ": Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
                                 default:
-                                    throw "Invalid instruction: " + match[2];
+                                    throw "Unbekannter Befehl: " + match[2];
                             }
                         }
                     } else {
                         // Check if line starts with a comment otherwise the line contains an error and can not be parsed
                         var line = lines[i].trim();
                         if (line !== "" && line.slice(0, 1) !== ";") {
-                            throw "Syntax error";
+                            throw "Syntaxfehler";
                         }
                     }
                 } catch (e) {
@@ -626,7 +628,7 @@ var app = angular.module('ASMSimulator', []);
                         code[i] = labels[code[i]];
                     } else {
 
-                        throw {error: "Undefined label: " + code[i]};
+                        throw {error: "Unbekanntes Label: " + code[i]};
                     }
                 }
             }
@@ -641,13 +643,13 @@ var app = angular.module('ASMSimulator', []);
             var self = this;
 
             if (self.fault === true) {
-                throw "FAULT. Reset to continue.";
+                throw "Prozessorfehler (F = TRUE). Zum Fortfahren zurücksetzen.";
             }
 
             try {
                 var checkGPR = function (reg) {
                     if (reg < 0 || reg >= self.gpr.length) {
-                        throw "Invalid register: " + reg;
+                        throw "Ungültiges Register: " + reg;
                     } else {
                         return reg;
                     }
@@ -655,7 +657,7 @@ var app = angular.module('ASMSimulator', []);
 
                 var checkGPR_SP = function (reg) {
                     if (reg < 0 || reg >= 1 + self.gpr.length) {
-                        throw "Invalid register: " + reg;
+                        throw "Ungültiges Register: " + reg;
                     } else {
                         return reg;
                     }
@@ -669,12 +671,12 @@ var app = angular.module('ASMSimulator', []);
 
                         // Not likely to happen, since we always get here after checkOpertion().
                         if (self.sp < self.minSP) {
-                            throw "Stack overflow";
+                            throw "Stack-Überlauf (Stack overflow)";
                         } else if (self.sp > self.maxSP) {
-                            throw "Stack underflow";
+                            throw "Stack-Unterlauf (Stack underflow)";
                         }
                     } else {
-                        throw "Invalid register: " + reg;
+                        throw "Ungültiges Register: " + reg;
                     }
                 };
 
@@ -684,7 +686,7 @@ var app = angular.module('ASMSimulator', []);
                     } else if (reg == self.gpr.length) {
                         return self.sp;
                     } else {
-                        throw "Invalid register: " + reg;
+                        throw "Ungültiges Register: " + reg;
                     }
                 };
 
@@ -728,7 +730,7 @@ var app = angular.module('ASMSimulator', []);
 
                 var jump = function (newIP) {
                     if (newIP < 0 || newIP >= memory.data.length) {
-                        throw "IP outside memory";
+                        throw "Sprungziel liegt außerhalb des Speichers";
                     } else {
                         self.ip = newIP;
                     }
@@ -737,14 +739,14 @@ var app = angular.module('ASMSimulator', []);
                 var push = function (value) {
                     memory.store(self.sp--, value);
                     if (self.sp < self.minSP) {
-                        throw "Stack overflow";
+                        throw "Stack-Überlauf (Stack overflow)";
                     }
                 };
 
                 var pop = function () {
                     var value = memory.load(++self.sp);
                     if (self.sp > self.maxSP) {
-                        throw "Stack underflow";
+                        throw "Stack-Unterlauf (Stack underflow)";
                     }
 
                     return value;
@@ -752,14 +754,14 @@ var app = angular.module('ASMSimulator', []);
 
                 var division = function (divisor) {
                     if (divisor === 0) {
-                        throw "Division by 0";
+                        throw "Division durch 0";
                     }
 
                     return Math.floor(self.gpr[0] / divisor);
                 };
 
                 if (self.ip < 0 || self.ip >= memory.data.length) {
-                    throw "Instruction pointer is outside of memory";
+                    throw "Befehlszeiger (IP) liegt außerhalb des Speichers";
                 }
 
                 var regTo, regFrom, memFrom, memTo, number;
@@ -1239,7 +1241,7 @@ var app = angular.module('ASMSimulator', []);
                         self.ip++;
                         break;
                     default:
-                        throw "Invalid op code: " + instr;
+                        throw "Ungültiger Opcode: " + instr;
                 }
 
                 return true;
@@ -1273,7 +1275,7 @@ var app = angular.module('ASMSimulator', []);
             var self = this;
 
             if (address < 0 || address >= self.data.length) {
-                throw "Memory access violation at " + address;
+                throw "Speicherzugriffsfehler bei Adresse " + address;
             }
 
             self.lastAccess = address;
@@ -1283,7 +1285,7 @@ var app = angular.module('ASMSimulator', []);
             var self = this;
 
             if (address < 0 || address >= self.data.length) {
-                throw "Memory access violation at " + address;
+                throw "Speicherzugriffsfehler bei Adresse " + address;
             }
 
             self.lastAccess = address;
@@ -1386,41 +1388,138 @@ var app = angular.module('ASMSimulator', []);
     $scope.memory = memory;
     $scope.cpu = cpu;
     $scope.error = '';
+    $scope.info = '';
+    $scope.warning = '';
     $scope.isRunning = false;
+    $scope.halted = false;
+    $scope.steps = 0;
     $scope.displayHex = true;
     $scope.displayInstr = true;
     $scope.displayA = false;
     $scope.displayB = false;
     $scope.displayC = false;
     $scope.displayD = false;
-    $scope.speeds = [{speed: 1, desc: "1 HZ"},
-                     {speed: 4, desc: "4 HZ"},
-                     {speed: 8, desc: "8 HZ"},
-                     {speed: 16, desc: "16 HZ"},
-                     {speed: 32, desc: "32 HZ"},
-                     {speed: 64, desc: "64 HZ"},
-                     {speed: 128, desc: "128 HZ"},
-                     {speed: 256, desc: "256 HZ"}];
+    $scope.speeds = [1, 4, 8, 16, 32, 64, 128, 256];
     $scope.speed = 4;
     $scope.outputStartIndex = 232;
+    // Upper bound for "Bis HLT" so that endless loops do not freeze the page
+    $scope.maxSteps = 10000;
 
-    $scope.code = "; Simple example\n; Writes Hello World to the output\n\n	JMP start\nhello: DB \"Hello World!\" ; Variable\n       DB 0	; String terminator\n\nstart:\n	MOV C, hello    ; Point to var \n	MOV D, 232	; Point to output\n	CALL print\n        HLT             ; Stop execution\n\nprint:			; print(C:*from, D:*to)\n	PUSH A\n	PUSH B\n	MOV B, 0\n.loop:\n	MOV A, [C]	; Get char from var\n	MOV [D], A	; Write to output\n	INC C\n	INC D  \n	CMP B, [C]	; Check if end\n	JNZ .loop	; jump if not\n\n	POP B\n	POP A\n	RET";
+    $scope.rows = [];
+    $scope.cols = [];
+    for (var n = 0; n < 16; n++) {
+        $scope.rows.push(n * 16);
+        $scope.cols.push(n);
+    }
+
+    $scope.examples = [
+        {
+            name: "Hallo Welt (Unterprogramm)",
+            code: "; Beispiel: Hallo Welt\n; Schreibt \"Hallo Welt!\" in die Ausgabe\n\n" +
+                "\tJMP start\n" +
+                "hello:\tDB \"Hallo Welt!\"\t; Zeichenkette\n" +
+                "\tDB 0\t\t; Endezeichen\n\n" +
+                "start:\n" +
+                "\tMOV C, hello\t; C zeigt auf die Zeichenkette\n" +
+                "\tMOV D, 232\t; D zeigt auf die Ausgabe\n" +
+                "\tCALL print\n" +
+                "\tHLT\t\t; Programm beenden\n\n" +
+                "print:\t\t\t; print(C: Quelle, D: Ziel)\n" +
+                "\tPUSH A\n" +
+                "\tPUSH B\n" +
+                "\tMOV B, 0\n" +
+                ".loop:\n" +
+                "\tMOV A, [C]\t; Zeichen holen\n" +
+                "\tMOV [D], A\t; in die Ausgabe schreiben\n" +
+                "\tINC C\n" +
+                "\tINC D\n" +
+                "\tCMP B, [C]\t; Endezeichen erreicht?\n" +
+                "\tJNZ .loop\t; wenn nicht: weiter\n\n" +
+                "\tPOP B\n" +
+                "\tPOP A\n" +
+                "\tRET"
+        },
+        {
+            name: "Countdown (Schleife)",
+            code: "; Beispiel: Countdown\n; Schreibt die Ziffern 9 bis 0 in die Ausgabe\n\n" +
+                "\tMOV A, '9'\t; Startwert als Zeichen\n" +
+                "\tMOV D, 232\t; D zeigt auf die Ausgabe\n" +
+                "loop:\n" +
+                "\tMOV [D], A\t; Ziffer ausgeben\n" +
+                "\tINC D\n" +
+                "\tCMP A, '0'\t; schon bei '0'?\n" +
+                "\tJZ ende\t\t; ja: fertig\n" +
+                "\tDEC A\n" +
+                "\tJMP loop\n" +
+                "ende:\n" +
+                "\tHLT"
+        },
+        {
+            name: "Multiplikation 6 · 7",
+            code: "; Beispiel: Multiplikation\n; Berechnet 6 * 7 = 42 und gibt das Ergebnis\n; als zwei Dezimalziffern aus\n\n" +
+                "\tMOV A, 6\n" +
+                "\tMUL 7\t\t; A = A * 7\n" +
+                "\tMOV B, A\t; Ergebnis merken\n" +
+                "\tDIV 10\t\t; A = Zehnerstelle\n" +
+                "\tMOV C, A\n" +
+                "\tADD A, '0'\t; Ziffer -> Zeichen\n" +
+                "\tMOV [232], A\n" +
+                "\tMOV A, C\n" +
+                "\tMUL 10\n" +
+                "\tSUB B, A\t; B = Einerstelle\n" +
+                "\tADD B, '0'\n" +
+                "\tMOV [233], B\n" +
+                "\tHLT"
+        }
+    ];
+    $scope.example = $scope.examples[0];
+    $scope.code = $scope.example.code;
+    $scope.assembledCode = null;
+
+    $scope.loadExample = function () {
+        $scope.stop();
+        $scope.code = $scope.example.code;
+        $scope.assemble();
+    };
+
+    $scope.codeChanged = function () {
+        return $scope.assembledCode !== null && $scope.assembledCode !== $scope.code;
+    };
 
     $scope.reset = function () {
         cpu.reset();
         memory.reset();
         $scope.error = '';
+        $scope.info = '';
+        $scope.warning = '';
+        $scope.halted = false;
+        $scope.steps = 0;
         $scope.selectedLine = -1;
+    };
+
+    // "Zurücksetzen": reload the current program into a fresh CPU and memory
+    $scope.restart = function () {
+        $scope.stop();
+        $scope.assemble();
     };
 
     $scope.executeStep = function () {
         if (!$scope.checkPrgrmLoaded()) {
             $scope.assemble();
+            if ($scope.error !== '') {
+                return false;
+            }
         }
 
         try {
-            // Execute
             var res = cpu.step();
+
+            if (res === true) {
+                $scope.steps++;
+            } else {
+                $scope.halted = true;
+                $scope.info = 'Programm beendet (HLT) nach ' + $scope.steps + ' Schritten.';
+            }
 
             // Mark in code
             if (cpu.ip in $scope.mapping) {
@@ -1438,6 +1537,9 @@ var app = angular.module('ASMSimulator', []);
     $scope.run = function () {
         if (!$scope.checkPrgrmLoaded()) {
             $scope.assemble();
+            if ($scope.error !== '') {
+                return;
+            }
         }
 
         $scope.isRunning = true;
@@ -1448,6 +1550,16 @@ var app = angular.module('ASMSimulator', []);
                 $scope.isRunning = false;
             }
         }, 1000 / $scope.speed);
+    };
+
+    $scope.runToEnd = function () {
+        $scope.stop();
+        for (var i = 0; i < $scope.maxSteps; i++) {
+            if ($scope.executeStep() !== true) {
+                return;
+            }
+        }
+        $scope.warning = 'Nach ' + $scope.maxSteps + ' Schritten angehalten – möglicherweise eine Endlosschleife.';
     };
 
     $scope.stop = function () {
@@ -1469,7 +1581,7 @@ var app = angular.module('ASMSimulator', []);
         var text = String.fromCharCode(value);
 
         if (text.trim() === '') {
-            return '\u00A0\u00A0';
+            return ' ';
         } else {
             return text;
         }
@@ -1485,26 +1597,28 @@ var app = angular.module('ASMSimulator', []);
             $scope.labels = assembly.labels;
 
             if (binary.length > memory.data.length)
-                throw "Binary code does not fit into the memory. Max " + memory.data.length + " bytes are allowed";
+                throw {error: "Das Programm passt nicht in den Speicher (" + binary.length + " von maximal " + memory.data.length + " Bytes)."};
 
             for (var i = 0, l = binary.length; i < l; i++) {
                 memory.data[i] = binary[i];
             }
+
+            $scope.assembledCode = $scope.code;
+            $scope.info = 'Assembliert: ' + binary.length + ' Bytes im Speicher geladen.';
         } catch (e) {
+            $scope.assembledCode = null;
             if (e.line !== undefined) {
-                $scope.error = e.line + " | " + e.error;
+                $scope.error = 'Zeile ' + (e.line + 1) + ': ' + e.error;
                 $scope.selectedLine = e.line;
             } else {
-                $scope.error = e.error;
+                $scope.error = e.error !== undefined ? e.error : e;
             }
         }
     };
 
     $scope.jumpToLine = function (index) {
-        $document[0].getElementById('sourceCode').scrollIntoView();
         $scope.selectedLine = $scope.mapping[index];
     };
-
 
     $scope.isInstruction = function (index) {
         return $scope.mapping !== undefined &&
@@ -1541,10 +1655,31 @@ var app = angular.module('ASMSimulator', []);
             return '';
         }
     };
+
+    $scope.objectKeys = function (obj) {
+        return obj ? Object.keys(obj).length : 0;
+    };
+
+    $scope.openHelp = function () {
+        var el = $document[0].getElementById('befehlssatz');
+        if (el) {
+            el.open = true;
+        }
+    };
+
+    // Open the instruction reference when linked as index.html#befehlssatz
+    if ($document[0].location.hash === '#befehlssatz') {
+        $timeout(function () {
+            $scope.openHelp();
+            $document[0].getElementById('befehlssatz').scrollIntoView();
+        });
+    }
+
+    $scope.assemble();
 }]);
 ;app.filter('flag', function() {
     return function(input) {
-        return input.toString().toUpperCase();
+        return input ? '1' : '0';
     };
 });
 ;app.filter('number', function() {
@@ -1557,43 +1692,44 @@ var app = angular.module('ASMSimulator', []);
         }
     };
 });
-;// Source: http://lostsource.com/2012/11/30/selecting-textarea-line.html
+;// Highlights the line scope.selectedLine in the textarea (used to show the current instruction).
+// Based on: http://lostsource.com/2012/11/30/selecting-textarea-line.html
+// The textarea is scrolled internally and focused with preventScroll, so the page that embeds
+// the simulator (e.g. a Moodle course via iframe) does not jump on every step.
 app.directive('selectLine', [function () {
     return {
         restrict: 'A',
-        link: function (scope, element, attrs, controller) {
+        link: function (scope, element) {
+            var textarea = element[0];
+
             scope.$watch('selectedLine', function () {
-                if (scope.selectedLine >= 0) {
-                    var lines = element[0].value.split("\n");
+                if (scope.selectedLine === undefined || scope.selectedLine < 0) {
+                    return;
+                }
 
-                    // Calculate start/end
-                    var startPos = 0;
-                    for (var x = 0; x < lines.length; x++) {
-                        if (x == scope.selectedLine) {
-                            break;
-                        }
-                        startPos += (lines[x].length + 1);
-                    }
+                var lines = textarea.value.split("\n");
+                if (scope.selectedLine >= lines.length) {
+                    return;
+                }
 
-                    var endPos = lines[scope.selectedLine].length + startPos;
+                var startPos = 0;
+                for (var x = 0; x < scope.selectedLine; x++) {
+                    startPos += lines[x].length + 1;
+                }
+                var endPos = startPos + lines[scope.selectedLine].length;
 
-                    // Chrome / Firefox
-                    if (typeof(element[0].selectionStart) != "undefined") {
-                        element[0].focus();
-                        element[0].selectionStart = startPos;
-                        element[0].selectionEnd = endPos;
-                    }
+                try {
+                    textarea.focus({preventScroll: true});
+                } catch (e) {
+                    textarea.focus();
+                }
+                textarea.setSelectionRange(startPos, endPos);
 
-                    // IE
-                    if (document.selection && document.selection.createRange) {
-                        element[0].focus();
-                        element[0].select();
-                        var range = document.selection.createRange();
-                        range.collapse(true);
-                        range.moveEnd("character", endPos);
-                        range.moveStart("character", startPos);
-                        range.select();
-                    }
+                // Keep the selected line visible inside the textarea
+                var lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 18;
+                var top = scope.selectedLine * lineHeight;
+                if (top < textarea.scrollTop || top + lineHeight > textarea.scrollTop + textarea.clientHeight) {
+                    textarea.scrollTop = Math.max(0, top - textarea.clientHeight / 3);
                 }
             });
         }

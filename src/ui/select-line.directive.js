@@ -1,40 +1,41 @@
-// Source: http://lostsource.com/2012/11/30/selecting-textarea-line.html
+// Highlights the line scope.selectedLine in the textarea (used to show the current instruction).
+// Based on: http://lostsource.com/2012/11/30/selecting-textarea-line.html
+// The textarea is scrolled internally and focused with preventScroll, so the page that embeds
+// the simulator (e.g. a Moodle course via iframe) does not jump on every step.
 app.directive('selectLine', [function () {
     return {
         restrict: 'A',
-        link: function (scope, element, attrs, controller) {
+        link: function (scope, element) {
+            var textarea = element[0];
+
             scope.$watch('selectedLine', function () {
-                if (scope.selectedLine >= 0) {
-                    var lines = element[0].value.split("\n");
+                if (scope.selectedLine === undefined || scope.selectedLine < 0) {
+                    return;
+                }
 
-                    // Calculate start/end
-                    var startPos = 0;
-                    for (var x = 0; x < lines.length; x++) {
-                        if (x == scope.selectedLine) {
-                            break;
-                        }
-                        startPos += (lines[x].length + 1);
-                    }
+                var lines = textarea.value.split("\n");
+                if (scope.selectedLine >= lines.length) {
+                    return;
+                }
 
-                    var endPos = lines[scope.selectedLine].length + startPos;
+                var startPos = 0;
+                for (var x = 0; x < scope.selectedLine; x++) {
+                    startPos += lines[x].length + 1;
+                }
+                var endPos = startPos + lines[scope.selectedLine].length;
 
-                    // Chrome / Firefox
-                    if (typeof(element[0].selectionStart) != "undefined") {
-                        element[0].focus();
-                        element[0].selectionStart = startPos;
-                        element[0].selectionEnd = endPos;
-                    }
+                try {
+                    textarea.focus({preventScroll: true});
+                } catch (e) {
+                    textarea.focus();
+                }
+                textarea.setSelectionRange(startPos, endPos);
 
-                    // IE
-                    if (document.selection && document.selection.createRange) {
-                        element[0].focus();
-                        element[0].select();
-                        var range = document.selection.createRange();
-                        range.collapse(true);
-                        range.moveEnd("character", endPos);
-                        range.moveStart("character", startPos);
-                        range.select();
-                    }
+                // Keep the selected line visible inside the textarea
+                var lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 18;
+                var top = scope.selectedLine * lineHeight;
+                if (top < textarea.scrollTop || top + lineHeight > textarea.scrollTop + textarea.clientHeight) {
+                    textarea.scrollTop = Math.max(0, top - textarea.clientHeight / 3);
                 }
             });
         }
