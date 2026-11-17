@@ -39,7 +39,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                 } else if (regexNum.exec(input)) {
                     return parseInt(input, 10);
                 } else {
-                    throw "Invalid number format";
+                    throw "Ungültiges Zahlenformat";
                 }
             };
 
@@ -96,7 +96,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                 var offset = m * parseInt(input.slice(offset_start + 1), 10);
 
                 if (offset < -16 || offset > 15)
-                    throw "offset must be a value between -16...+15";
+                    throw "Der Offset muss zwischen -16 und +15 liegen";
 
                 if (offset < 0) {
                     offset = 32 + offset; // two's complement representation in 5-bit
@@ -106,6 +106,8 @@ app.service('assembler', ['opcodes', function (opcodes) {
             };
 
             // Allowed: Register, Label or Number; SP+/-Number is allowed for 'regaddress' type
+            var typeNames = {address: "Adresse", number: "Zahl"};
+
             var parseRegOrNumber = function (input, typeReg, typeNumber) {
                 var register = parseRegister(input);
 
@@ -128,10 +130,10 @@ app.service('assembler', ['opcodes', function (opcodes) {
                         var value = parseNumber(input);
 
                         if (isNaN(value)) {
-                            throw "Not a " + typeNumber + ": " + value;
+                            throw "Keine gültige " + typeNames[typeNumber] + ": " + input;
                         }
                         else if (value < 0 || value > 255)
-                            throw typeNumber + " must have a value between 0-255";
+                            throw typeNames[typeNumber] + " muss zwischen 0 und 255 liegen";
 
                         return {type: typeNumber, value: value};
                     }
@@ -159,7 +161,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                     case "'": // 'C'
                         var character = input.slice(1, input.length - 1);
                         if (character.length > 1)
-                            throw "Only one character is allowed. Use String instead";
+                            throw "Nur ein einzelnes Zeichen erlaubt. Für mehrere Zeichen \"...\" verwenden";
 
                         return {type: "number", value: character.charCodeAt(0)};
                     default: // REGISTER, NUMBER or LABEL
@@ -170,17 +172,17 @@ app.service('assembler', ['opcodes', function (opcodes) {
             var addLabel = function (label) {
                 var upperLabel = label.toUpperCase();
                 if (upperLabel in normalizedLabels)
-                    throw "Duplicate label: " + label;
+                    throw "Label doppelt vergeben: " + label;
 
                 if (upperLabel === "A" || upperLabel === "B" || upperLabel === "C" || upperLabel === "D")
-                    throw "Label contains keyword: " + upperLabel;
+                    throw "Label ist ein reserviertes Wort: " + upperLabel;
 
                 labels[label] = code.length;
             };
 
             var checkNoExtraArg = function (instr, arg) {
                 if (arg !== undefined) {
-                    throw instr + ": too many arguments";
+                    throw instr + ": zu viele Operanden";
                 }
             };
 
@@ -213,7 +215,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                             code.push(p1.value[j]);
                                         }
                                     else
-                                        throw "DB does not support this operand";
+                                        throw "DB: Dieser Operand wird nicht unterstützt";
 
                                     break;
                                 case 'HLT':
@@ -243,7 +245,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "regaddress" && p2.type === "number")
                                         opCode = opcodes.MOV_NUMBER_TO_REGADDRESS;
                                     else
-                                        throw "MOV does not support this operands";
+                                        throw "MOV: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -260,7 +262,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.ADD_NUMBER_TO_REG;
                                     else
-                                        throw "ADD does not support this operands";
+                                        throw "ADD: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -277,7 +279,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SUB_NUMBER_FROM_REG;
                                     else
-                                        throw "SUB does not support this operands";
+                                        throw "SUB: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -288,7 +290,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     if (p1.type === "register")
                                         opCode = opcodes.INC_REG;
                                     else
-                                        throw "INC does not support this operand";
+                                        throw "INC: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
 
@@ -300,7 +302,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     if (p1.type === "register")
                                         opCode = opcodes.DEC_REG;
                                     else
-                                        throw "DEC does not support this operand";
+                                        throw "DEC: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
 
@@ -318,7 +320,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.CMP_NUMBER_WITH_REG;
                                     else
-                                        throw "CMP does not support this operands";
+                                        throw "CMP: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -331,7 +333,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JMP_ADDRESS;
                                     else
-                                        throw "JMP does not support this operands";
+                                        throw "JMP: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -346,7 +348,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JC_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -361,7 +363,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNC_ADDRESS;
                                     else
-                                        throw instr + "does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -375,7 +377,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JZ_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -389,7 +391,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNZ_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -403,7 +405,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JA_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -417,7 +419,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.JNA_ADDRESS;
                                     else
-                                        throw instr + " does not support this operand";
+                                        throw instr + ": Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -434,7 +436,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.PUSH_NUMBER;
                                     else
-                                        throw "PUSH does not support this operand";
+                                        throw "PUSH: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -445,7 +447,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     if (p1.type === "register")
                                         opCode = opcodes.POP_REG;
                                     else
-                                        throw "PUSH does not support this operand";
+                                        throw "POP: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -458,7 +460,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.CALL_ADDRESS;
                                     else
-                                        throw "CALL does not support this operand";
+                                        throw "CALL: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -483,7 +485,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.MUL_NUMBER;
                                     else
-                                        throw "MULL does not support this operand";
+                                        throw "MUL: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -500,7 +502,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "number")
                                         opCode = opcodes.DIV_NUMBER;
                                     else
-                                        throw "DIV does not support this operand";
+                                        throw "DIV: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -517,7 +519,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.AND_NUMBER_WITH_REG;
                                     else
-                                        throw "AND does not support this operands";
+                                        throw "AND: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -534,7 +536,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.OR_NUMBER_WITH_REG;
                                     else
-                                        throw "OR does not support this operands";
+                                        throw "OR: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -551,7 +553,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.XOR_NUMBER_WITH_REG;
                                     else
-                                        throw "XOR does not support this operands";
+                                        throw "XOR: Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -562,7 +564,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     if (p1.type === "register")
                                         opCode = opcodes.NOT_REG;
                                     else
-                                        throw "NOT does not support this operand";
+                                        throw "NOT: Dieser Operand wird nicht unterstützt";
 
                                     code.push(opCode, p1.value);
                                     break;
@@ -580,7 +582,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SHL_NUMBER_WITH_REG;
                                     else
-                                        throw instr + " does not support this operands";
+                                        throw instr + ": Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
@@ -598,19 +600,19 @@ app.service('assembler', ['opcodes', function (opcodes) {
                                     else if (p1.type === "register" && p2.type === "number")
                                         opCode = opcodes.SHR_NUMBER_WITH_REG;
                                     else
-                                        throw instr + " does not support this operands";
+                                        throw instr + ": Diese Operanden werden nicht unterstützt";
 
                                     code.push(opCode, p1.value, p2.value);
                                     break;
                                 default:
-                                    throw "Invalid instruction: " + match[2];
+                                    throw "Unbekannter Befehl: " + match[2];
                             }
                         }
                     } else {
                         // Check if line starts with a comment otherwise the line contains an error and can not be parsed
                         var line = lines[i].trim();
                         if (line !== "" && line.slice(0, 1) !== ";") {
-                            throw "Syntax error";
+                            throw "Syntaxfehler";
                         }
                     }
                 } catch (e) {
@@ -625,7 +627,7 @@ app.service('assembler', ['opcodes', function (opcodes) {
                         code[i] = labels[code[i]];
                     } else {
 
-                        throw {error: "Undefined label: " + code[i]};
+                        throw {error: "Unbekanntes Label: " + code[i]};
                     }
                 }
             }
